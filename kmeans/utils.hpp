@@ -26,6 +26,7 @@ SOFTWARE.
 #define __UTILS_HPP__
 
 #include <vector>
+#include <valarray>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -34,8 +35,7 @@ SOFTWARE.
 namespace utils {
 
 template <typename T>
-using matrix = std::vector<std::vector<T>>;
-
+using matrix = std::vector<std::valarray<T>>;
 
 class Generator {
     public:
@@ -61,7 +61,6 @@ class Generator {
         auto begin() const { return Generator(begin_); };
         auto end() const { return Generator(end_); };
 
-
     private:
         int iterator_;
         int begin_;
@@ -71,7 +70,7 @@ class Generator {
 class Parser
 {
     public:
-        static matrix<size_t> getDataFromFile(std::string filename)
+        static matrix<double> getDataFromFile(std::string filename)
         {
             std::ifstream inputData(filename);
             std::istringstream tokenStream(filename);
@@ -83,15 +82,15 @@ class Parser
                 return tokens;
             };
 
-            auto dataset = matrix<size_t>();
+            auto dataset = matrix<double>();
             auto line = std::string{};
 
             if (inputData.is_open()) {
                 while (std::getline(inputData, line)) {
                     auto tokens = split(line);
-                    auto processed_data = std::vector<size_t>{};
+                    auto processed_data = std::valarray<double>(tokens.size());
                     for (const auto& val : Generator(0, tokens.size())) {
-                        processed_data.push_back(std::stoul(tokens[val]));
+                        processed_data[val] = std::stod(tokens[val]);
                     }
                     dataset.push_back(processed_data);
                 }

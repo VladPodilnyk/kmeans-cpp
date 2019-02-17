@@ -28,36 +28,93 @@ SOFTWARE.
 #include <utility>
 #include <algorithm>
 #include <vector>
-
-
-#include "xtensor/xarray.hpp"
-#include "xtensor/xio.hpp"
-#include "xtensor/xrandom.hpp"
-
+#include <valarray>
+#include <unordered_map>
 
 #include "kmeans.hpp"
 
+/**
+ * TODO: use xtensor for linear algebra operations
+ */
+
+using namespace utils;
+
 namespace ml {
 
-int kmeans::operator()(int k, double epsilon, utils::matrix<size_t>& data)
+matrix<double> kmeans::operator()(int k, double epsilon, const matrix<double>& data)
 {
     auto error = std::numeric_limits<double>::max();
-    auto prototypes_indx = xt::random::randint<int>({0, 3});
-    //while (error > epsilon) {
+    auto rand_centroids_indx = rand_int(0, data.size() - 1, k);
 
-    //}
-    return 0;
+    auto prototypes = matrix<double>{};
+    for (const auto& indx : rand_centroids_indx) {
+        prototypes.push_back(data[indx]);
+    }
+
+    auto old_centroids = matrix<double>{};
+    auto clusters = std::unordered_map<int, std::vector<int>>{};
+
+    while (error > epsilon) {
+        auto dict = std::unordered_map<int, std::vector<int>>{};
+        for (const auto& val : Generator(0, k)) {
+            dict.emplace(val, std::vector<int>{});
+        }
+
+        /**
+         * Calculate distance from each centroid to the particular
+         * data point.
+         * 
+         * TODO: refactor code (CODE MUST BE SELF_DOCUMENTED)
+         *       PERFORMANCE MEASUREMENTS!!!
+         */
+        for (const auto& record_indx : Generator(0, data.size())) {
+            auto dist_vec = std::valarray<double>(k);
+            for (const auto& centroid_indx : Generator(0, k)) {
+                dist_vec[centroid_indx] = euclidian_distance(
+                                            data[record_indx],
+                                            prototypes[centroid_indx]
+                                        );
+            }
+
+            auto min_dist = dist_vec.min();
+            auto category = 
+                std::find(begin(dist_vec), end(dist_vec), min_dist) - begin(dist_vec);
+            dict[category].push_back(record_indx);
+        }
+
+        /**
+         * Calculate new centroids and find an error.
+         * 
+         * TODO: refactor code (CODE MUST BE SELF_DOCUMENTED)
+         *       PERFORMANCE MEASUREMENTS!!!
+         */
+        old_centroids = prototypes;
+        for (const auto& category : Generator(0, k)) {
+            auto sum = std::valarray<double>(0.0, data[0].size());
+            for (const auto& record_indx : dict[category]) {
+                sum += data[record_indx];
+            }
+
+            std::valarray<double> new_centroid = sum / static_cast<double>(dict[category].size());
+            prototypes[category] = new_centroid;
+        }
+        error = euclidian_distance(prototypes, old_centroids);
+        clusters = dict;
+    }
+
+    return prototypes;
 };
 
-auto kmeans::euclidian_distance()
+std::valarray<int> kmeans::rand_int(int low, int high, int size)
 {
-    auto sum = 0.0;
-    return sum;
-}
+    std::random_device seed;
+    std::mt19937_64 rand_number_gen(seed());
+    std::uniform_int_distribution<> dist{low, high};
 
-auto kmeans::rand_int(int low, int high, int size)
-{
-    return 0;
+    auto container = std::valarray<int>(size);
+    std::generate(begin(container), end(container),
+                    [&]() { return dist(rand_number_gen); });
+    return container;
 }
 
 } // ml
