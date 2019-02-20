@@ -25,9 +25,9 @@ SOFTWARE.
 #ifndef __KMEANS_CPP__
 #define __KMEANS_CPP__
 
+#include <iostream>
 #include "utils.hpp"
 
-#include <iostream>
 namespace ml {
 
 class kmeans {
@@ -37,33 +37,7 @@ class kmeans {
         utils::matrix<double> operator()(int k, double epsilon, 
                                         const utils::matrix<double>& data);
     private:
-        // functions;
-        template <typename Container>
-        auto euclidian_distance(const Container& a, const Container& b)
-        {
-            auto sum = 0.0;
-            for (const auto& indx : utils::Generator(0, a.size())) {
-                sum += (a[indx] - b[indx]) * (a[indx] - b[indx]);
-            }
-            return std::sqrt(sum);
-        };
-
-        auto euclidian_distance(const utils::matrix<double>& a, 
-                                const utils::matrix<double>& b)
-        {
-            auto sum = 0.0;
-            for (const auto& i : utils::Generator(0, a.size())) {
-                for (const auto& j : utils::Generator(0, a[0].size())) {
-                    sum += (a[i][j] - b[i][j]) * (a[i][j] - b[i][j]);
-                }
-            }
-            return std::sqrt(sum);
-        };
-
         std::valarray<int> rand_int(int low, int high, int size);
-
-        // data
-        size_t n_clusters;
 };
 
 } // ml

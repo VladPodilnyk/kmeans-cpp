@@ -31,12 +31,15 @@ SOFTWARE.
 #include <fstream>
 #include <sstream>
 #include <iterator>
+#include <fstream>
+#include <unordered_map>
 
 namespace utils {
 
 template <typename T>
 using matrix = std::vector<std::valarray<T>>;
 
+// data structures
 class Generator {
     public:
         Generator(int iterator) : iterator_{iterator} {};
@@ -67,8 +70,7 @@ class Generator {
         int end_;
 };
 
-class Parser
-{
+class Parser {
     public:
         static matrix<double> getDataFromFile(std::string filename)
         {
@@ -101,6 +103,70 @@ class Parser
             inputData.close();
             return dataset;
         };
+};
+
+// functions;
+static auto euclidian_distance(const std::valarray<double>& a,
+                        const std::valarray<double>& b)
+{
+    auto sum = 0.0;
+    for (const auto& indx : Generator(0, a.size())) {
+        sum += (a[indx] - b[indx]) * (a[indx] - b[indx]);
+    }
+    return std::sqrt(sum);
+};
+
+static auto euclidian_distance(const matrix<double>& a,
+                        const matrix<double>& b)
+{
+    auto sum = 0.0;
+    for (const auto& i : Generator(0, a.size())) {
+        for (const auto& j : Generator(0, a[0].size())) {
+            sum += (a[i][j] - b[i][j]) * (a[i][j] - b[i][j]);
+        }
+    }
+    return std::sqrt(sum);
+};
+
+struct FileWriter {
+    template <typename Container, typename Data>
+    static void dump_data(Container&& container, Data&& data) noexcept {
+        std::ofstream file;
+        file.open("clusters.dat");
+        auto dict = std::unordered_map<int, std::vector<int>>{};
+
+        for (const auto& record_indx : Generator(0, data.size())) {
+
+            auto dist_vec = std::valarray<double>(container.size());
+            for (const auto& centroid_indx : Generator(0, container.size())) {
+                dist_vec[centroid_indx] = euclidian_distance(
+                                            data[record_indx],
+                                            container[centroid_indx]
+                                        );
+            }
+
+            auto min_dist = dist_vec.min();
+            auto category = 
+                std::find(begin(dist_vec), end(dist_vec), min_dist) - begin(dist_vec);
+            dict[category].push_back(record_indx);
+        }
+
+        for (const auto& i : Generator(0, container.size())) {
+            for (const auto& j : Generator(0, container[i].size())) {
+                file << container[i][j] << " ";
+            }
+            file << "\n";
+        }
+
+        for (const auto points : dict) {
+            for (const auto& point : Generator(0, points.second.size())) {
+                for (const auto& i : Generator(0, data[point].size())) {
+                    file << data[point][i] << " ";
+                }
+                file << "\n";
+            }
+        }
+    }
 };
 
 } // utils
